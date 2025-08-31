@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: openstatica-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://openstatica:password@db:5432/openstatica
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - ENABLE_ML=true
+      - ENABLE_GPU=false
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./plugins:/app/plugins
+    depends_on:
+      - db
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: nginx:alpine
+    container_name: openstatica-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:14-alpine
+    container_name: openstatica-db
+    environment:
+      - POSTGRES_USER=openstatica
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=openstatica
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: openstatica-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
