@@ -1,0 +1,41 @@
+# Core
+fastapi
+uvicorn[standard]
+pydantic
+pydantic_settings
+python-multipart
+
+# Data Processing
+pandas
+numpy
+polars
+pyarrow
+openpyxl
+
+# Statistics
+scipy
+statsmodels
+pingouin
+scikit-learn
+
+# Visualization
+matplotlib
+seaborn
+plotly
+
+# API & Database
+redis
+sqlalchemy
+alembic
+asyncpg
+
+# Utilities
+python-dotenv
+pyyaml
+click
+rich
+
+# Testing
+pytest
+pytest-asyncio
+httpx
