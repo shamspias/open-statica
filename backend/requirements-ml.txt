@@ -1,0 +1,25 @@
+# Deep Learning Frameworks (optional)
+torch
+tensorflow
+jax[cpu]
+
+# ML Libraries
+xgboost
+lightgbm
+catboost
+
+# NLP & Vision
+transformers
+tokenizers
+datasets
+Pillow
+
+# Model Management
+mlflow
+optuna
+wandb
+
+# Additional ML Tools
+imbalanced-learn
+shap
+lime
