@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+          content="OpenStatica - Open-source statistical & ML platform scalable from lightweight analysis to advanced models">
+    <meta name="keywords" content="statistics, machine learning, data analysis, open source">
+    <title>OpenStatica - Statistical & ML Platform</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Chart Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.294.0/font/lucide.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h4l3-9 4 18 3-9h4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1>OpenStatica</h1>
+            </div>
+
+            <nav class="nav">
+                <button class="nav-btn active" data-view="data">
+                    <i class="lucide-database"></i>
+                    <span>Data</span>
+                </button>
+                <button class="nav-btn" data-view="descriptive">
+                    <i class="lucide-bar-chart-3"></i>
+                    <span>Descriptive</span>
+                </button>
+                <button class="nav-btn" data-view="inferential">
+                    <i class="lucide-activity"></i>
+                    <span>Inferential</span>
+                </button>
+                <button class="nav-btn" data-view="regression">
+                    <i class="lucide-trending-up"></i>
+                    <span>Regression</span>
+                </button>
+                <button class="nav-btn" data-view="multivariate">
+                    <i class="lucide-git-branch"></i>
+                    <span>Multivariate</span>
+                </button>
+                <button class="nav-btn" data-view="ml">
+                    <i class="lucide-cpu"></i>
+                    <span>Machine Learning</span>
+                </button>
+                <button class="nav-btn" data-view="visualization">
+                    <i class="lucide-pie-chart"></i>
+                    <span>Visualization</span>
+                </button>
+            </nav>
+
+            <div class="header-actions">
+                <button class="btn-icon" id="themeToggle" title="Toggle Theme">
+                    <i class="lucide-sun"></i>
+                </button>
+                <button class="btn-icon" id="settingsBtn" title="Settings">
+                    <i class="lucide-settings"></i>
+                </button>
+                <button class="btn-icon" id="helpBtn" title="Help">
+                    <i class="lucide-help-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Data Input Section -->
+            <div class="sidebar-section">
+                <h3>
+                    <i class="lucide-upload"></i>
+                    Data Input
+                </h3>
+                <div class="upload-area" id="uploadArea">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke-linecap="round"
+                              stroke-linejoin="round"/>
+                        <polyline points="17 8 12 3 7 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>Drop CSV/Excel file here or click to browse</p>
+                    <small>Supports: CSV, Excel, JSON, Parquet</small>
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json,.parquet" hidden>
+                </div>
+
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <div class="file-name"></div>
+                    <div class="file-actions">
+                        <button class="btn-text" id="clearData">
+                            <i class="lucide-x"></i> Clear Data
+                        </button>
+                        <button class="btn-text" id="downloadData">
+                            <i class="lucide-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variable Selection Section -->
+            <div class="sidebar-section" id="variableSelector" style="display: none;">
+                <h3>
+                    <i class="lucide-list"></i>
+                    Variables
+                </h3>
+                <div class="variable-search">
+                    <input type="text" class="form-control" id="variableSearch" placeholder="Search variables...">
+                </div>
+                <div class="variable-list" id="variableList"></div>
+            </div>
+
+            <!-- Analysis Options Section -->
+            <div class="sidebar-section" id="analysisOptions" style="display: none;">
+                <h3>
+                    <i class="lucide-sliders"></i>
+                    Analysis Options
+                </h3>
+                <div id="optionsContent"></div>
+                <button class="btn btn-primary" id="runAnalysis">
+                    <i class="lucide-play"></i>
+                    Run Analysis
+                </button>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="sidebar-section">
+                <h3>
+                    <i class="lucide-zap"></i>
+                    Quick Actions
+                </h3>
+                <div class="quick-actions">
+                    <button class="btn btn-secondary btn-sm" id="quickDescriptive">
+                        Quick Stats
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="quickCorrelation">
+                        Correlation Matrix
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="quickVisualize">
+                        Auto Visualize
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content">
+            <!-- Data View -->
+            <div class="view-panel active" id="dataView">
+                <div class="panel-header">
+                    <h2>Data Overview</h2>
+                    <div class="panel-actions">
+                        <span id="dataInfo"></span>
+                        <button class="btn btn-sm" id="transformBtn">
+                            <i class="lucide-wand-2"></i> Transform
+                        </button>
+                    </div>
+                </div>
+
+                <div class="data-table-container" id="dataTableContainer">
+                    <div class="empty-state">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="9" y1="9" x2="15" y2="9"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                        <h3>No Data Loaded</h3>
+                        <p>Upload a CSV or Excel file to get started</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="lucide-upload"></i> Upload Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descriptive Statistics View -->
+            <div class="view-panel" id="descriptiveView">
+                <div class="panel-header">
+                    <h2>Descriptive Statistics</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="exportDescriptive">
+                            <i class="lucide-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="results-container" id="descriptiveResults">
+                    <div class="empty-state">
+                        <i class="lucide-bar-chart-3" style="width: 64px; height: 64px;"></i>
+                        <h3>No Analysis Run</h3>
+                        <p>Select variables and run descriptive analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inferential Statistics View -->
+            <div class="view-panel" id="inferentialView">
+                <div class="panel-header">
+                    <h2>Inferential Statistics</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="exportInferential">
+                            <i class="lucide-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="results-container" id="inferentialResults">
+                    <div class="empty-state">
+                        <i class="lucide-activity" style="width: 64px; height: 64px;"></i>
+                        <h3>No Analysis Run</h3>
+                        <p>Select a test type and run analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regression View -->
+            <div class="view-panel" id="regressionView">
+                <div class="panel-header">
+                    <h2>Regression Analysis</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="exportRegression">
+                            <i class="lucide-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="results-container" id="regressionResults">
+                    <div class="empty-state">
+                        <i class="lucide-trending-up" style="width: 64px; height: 64px;"></i>
+                        <h3>No Analysis Run</h3>
+                        <p>Configure regression model and run analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multivariate View -->
+            <div class="view-panel" id="multivariateView">
+                <div class="panel-header">
+                    <h2>Multivariate Analysis</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="exportMultivariate">
+                            <i class="lucide-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="results-container" id="multivariateResults">
+                    <div class="empty-state">
+                        <i class="lucide-git-branch" style="width: 64px; height: 64px;"></i>
+                        <h3>No Analysis Run</h3>
+                        <p>Select multivariate analysis type and run</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Machine Learning View -->
+            <div class="view-panel" id="mlView">
+                <div class="panel-header">
+                    <h2>Machine Learning</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="modelHub">
+                            <i class="lucide-globe"></i> Model Hub
+                        </button>
+                        <button class="btn btn-sm" id="exportModel">
+                            <i class="lucide-download"></i> Export Model
+                        </button>
+                    </div>
+                </div>
+                <div class="results-container" id="mlResults">
+                    <div class="empty-state">
+                        <i class="lucide-cpu" style="width: 64px; height: 64px;"></i>
+                        <h3>No Model Trained</h3>
+                        <p>Configure ML algorithm and train model</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization View -->
+            <div class="view-panel" id="visualizationView">
+                <div class="panel-header">
+                    <h2>Data Visualization</h2>
+                    <div class="panel-actions">
+                        <select class="form-control" id="chartType" style="width: 150px;">
+                            <option value="histogram">Histogram</option>
+                            <option value="scatter">Scatter Plot</option>
+                            <option value="box">Box Plot</option>
+                            <option value="heatmap">Heatmap</option>
+                            <option value="line">Line Chart</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="pie">Pie Chart</option>
+                            <option value="3d">3D Scatter</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" id="createChart">
+                            <i class="lucide-plus"></i> Create
+                        </button>
+                    </div>
+                </div>
+                <div class="viz-container" id="vizContainer">
+                    <div class="empty-state">
+                        <i class="lucide-pie-chart" style="width: 64px; height: 64px;"></i>
+                        <h3>No Visualizations</h3>
+                        <p>Select chart type and create visualization</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Notifications Container -->
+<div id="notifications"></div>
+
+<!-- Global Loader -->
+<div id="globalLoader" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+</div>
+
+<!-- Scripts -->
+<script src="js/utils/helpers.js"></script>
+<script src="js/core/api.js"></script>
+<script src="js/core/state.js"></script>
+<script src="js/modules/data.js"></script>
+<script src="js/modules/statistics.js"></script>
+<script src="js/modules/ml.js"></script>
+<script src="js/modules/visualization.js"></script>
+<script src="js/core/app.js"></script>
+</body>
+</html>
