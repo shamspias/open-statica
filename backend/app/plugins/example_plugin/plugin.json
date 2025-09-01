@@ -1,0 +1,11 @@
+{
+  "name": "Example Plugin",
+  "version": "1.0.0",
+  "description": "Example plugin demonstrating OpenStatica plugin system",
+  "author": "OpenStatica Team",
+  "dependencies": [],
+  "engines": [
+    "example_engine"
+  ],
+  "routes": []
+}
