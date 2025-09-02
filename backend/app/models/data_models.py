@@ -158,7 +158,7 @@ class DataAggregateRequest(BaseModel):
     aggregations: Dict[str, List[str]]  # column: [operations]
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "session_id": "abc123",
                 "group_by": ["category", "region"],
