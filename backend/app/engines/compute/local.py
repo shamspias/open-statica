@@ -2,7 +2,6 @@
 Local Compute Backend for OpenStatica
 Handles computation on local machine resources
 """
-
 import asyncio
 import concurrent.futures
 import multiprocessing as mp
