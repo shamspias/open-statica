@@ -7,16 +7,15 @@ python-multipart
 
 # Data Processing
 pandas
-numpy
 polars
 pyarrow
 openpyxl
 
 # Statistics
-scipy
 statsmodels
 pingouin
 scikit-learn
+factor-analyzer
 
 # Visualization
 matplotlib
