@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenStatica - Quick Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #6366f1;
+            border-bottom: 2px solid #6366f1;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .status.success {
+            background: #10b981;
+            color: white;
+        }
+
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status.warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #4f46e5;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f3f4f6;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-input {
+            margin: 10px 0;
+        }
+
+        input[type="file"] {
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🚀 OpenStatica Test Suite</h1>
+
+    <div class="test-section">
+        <h2>1. Frontend Status</h2>
+        <div id="frontend-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Backend Connection</h2>
+        <button onclick="testBackend()">Test Backend API</button>
+        <div id="backend-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. File Upload Test</h2>
+        <div class="file-input">
+            <input type="file" id="testFile" accept=".csv">
+            <button onclick="testFileUpload()">Upload Test File</button>
+        </div>
+        <div id="upload-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Core Modules Test</h2>
+        <button onclick="testModules()">Test All Modules</button>
+        <div id="modules-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Sample Data Analysis</h2>
+        <button onclick="createSampleData()">Create Sample Data</button>
+        <button onclick="runSampleAnalysis()">Run Analysis</button>
+        <div id="analysis-status"></div>
+    </div>
+
+    <div id="results">
+        <strong>Results will appear here...</strong>
+    </div>
+</div>
+
+<!-- Load core scripts in order -->
+<script src="js/utils/helpers.js"></script>
+<script src="js/core/state.js"></script>
+<script src="js/core/api.js"></script>
+<script src="js/modules/data.js"></script>
+<script src="js/modules/statistics.js"></script>
+<script src="js/modules/ml.js"></script>
+<script src="js/modules/visualization.js"></script>
+<script src="js/core/app.js"></script>
+
+<script>
+    // Test functions
+    let testApp = null;
+    let testSessionId = null;
+
+    // Check frontend
+    window.addEventListener('DOMContentLoaded', () => {
+        const frontendStatus = document.getElementById('frontend-status');
+
+        try {
+            // Check if all modules loaded
+            const modules = ['utils', 'StateManager', 'OpenStaticaAPI', 'DataModule', 'StatisticsModule', 'MLModule', 'VisualizationModule', 'OpenStatica'];
+            let allLoaded = true;
+
+            modules.forEach(module => {
+                const exists = window[module] !== undefined;
+                frontendStatus.innerHTML += `<div class="status ${exists ? 'success' : 'error'}">${module}: ${exists ? '✓ Loaded' : '✗ Missing'}</div>`;
+                if (!exists) allLoaded = false;
+            });
+
+            if (allLoaded) {
+                frontendStatus.innerHTML += '<div class="status success">All frontend modules loaded successfully!</div>';
+                // Initialize test app
+                testApp = new OpenStatica();
+            }
+
+        } catch (error) {
+            frontendStatus.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
+        }
+    });
+
+    async function testBackend() {
+        const status = document.getElementById('backend-status');
+        const results = document.getElementById('results');
+
+        try {
+            status.innerHTML = '<div class="status warning">Testing connection...</div>';
+
+            const api = new OpenStaticaAPI();
+
+            // Test health endpoint
+            const response = await fetch('http://localhost:8000/health');
+            const health = await response.json();
+
+            status.innerHTML = '<div class="status success">✓ Backend is running</div>';
+            results.textContent = JSON.stringify(health, null, 2);
+
+            // Test main endpoint
+            const mainResponse = await fetch('http://localhost:8000/');
+            const info = await mainResponse.json();
+
+            status.innerHTML += `<div class="status success">Version: ${info.version}</div>`;
+            status.innerHTML += `<div class="status ${info.features.ml ? 'success' : 'warning'}">ML: ${info.features.ml ? 'Enabled' : 'Disabled'}</div>`;
+
+            results.textContent += '\n\nSystem Info:\n' + JSON.stringify(info, null, 2);
+
+        } catch (error) {
+            status.innerHTML = `<div class="status error">✗ Backend connection failed: ${error.message}</div>`;
+            status.innerHTML += '<div class="status warning">Make sure backend is running on port 8000</div>';
+            results.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    async function testFileUpload() {
+        const status = document.getElementById('upload-status');
+        const fileInput = document.getElementById('testFile');
+        const results = document.getElementById('results');
+
+        if (!fileInput.files[0]) {
+            status.innerHTML = '<div class="status error">Please select a file</div>';
+            return;
+        }
+
+        try {
+            status.innerHTML = '<div class="status warning">Uploading...</div>';
+
+            const api = new OpenStaticaAPI();
+            const response = await api.uploadFile(fileInput.files[0]);
+
+            testSessionId = response.session_id;
+
+            status.innerHTML = `<div class="status success">✓ File uploaded successfully</div>`;
+            status.innerHTML += `<div class="status success">Session ID: ${response.session_id}</div>`;
+            status.innerHTML += `<div class="status success">Data: ${response.rows} rows × ${response.columns} columns</div>`;
+
+            results.textContent = 'Upload Response:\n' + JSON.stringify(response, null, 2);
+
+        } catch (error) {
+            status.innerHTML = `<div class="status error">✗ Upload failed: ${error.message}</div>`;
+            results.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    async function testModules() {
+        const status = document.getElementById('modules-status');
+        const results = document.getElementById('results');
+
+        try {
+            // Test State Manager
+            const state = new StateManager();
+            state.set('test', {value: 123});
+            const testValue = state.get('test');
+            status.innerHTML = `<div class="status ${testValue.value === 123 ? 'success' : 'error'}">StateManager: ${testValue.value === 123 ? '✓' : '✗'}</div>`;
+
+            // Test Utils
+            const formatted = utils.format.number(3.14159, 2);
+            status.innerHTML += `<div class="status ${formatted === '3.14' ? 'success' : 'error'}">Utils: ${formatted === '3.14' ? '✓' : '✗'}</div>`;
+
+            // Test API
+            const api = new OpenStaticaAPI();
+            status.innerHTML += `<div class="status ${api.baseURL ? 'success' : 'error'}">API Client: ${api.baseURL ? '✓' : '✗'}</div>`;
+
+            results.textContent = 'Module tests completed successfully!';
+
+        } catch (error) {
+            status.innerHTML = `<div class="status error">✗ Module test failed: ${error.message}</div>`;
+            results.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    async function createSampleData() {
+        const status = document.getElementById('analysis-status');
+        const results = document.getElementById('results');
+
+        try {
+            // Create sample CSV data
+            const csvContent = `Age,Income,Score,Category
+25,35000,85,A
+30,42000,78,B
+35,55000,92,A
+40,61000,88,A
+28,38000,76,B
+33,47000,81,B
+37,59000,90,A
+42,65000,86,A
+26,36000,73,B
+31,44000,79,B`;
+
+            // Create blob and file
+            const blob = new Blob([csvContent], {type: 'text/csv'});
+            const file = new File([blob], 'sample_data.csv', {type: 'text/csv'});
+
+            // Upload
+            const api = new OpenStaticaAPI();
+            const response = await api.uploadFile(file);
+
+            testSessionId = response.session_id;
+
+            status.innerHTML = '<div class="status success">✓ Sample data created and uploaded</div>';
+            status.innerHTML += `<div class="status success">Session: ${testSessionId}</div>`;
+
+            results.textContent = 'Sample Data Info:\n' + JSON.stringify(response, null, 2);
+
+        } catch (error) {
+            status.innerHTML = `<div class="status error">✗ Failed to create sample data: ${error.message}</div>`;
+            results.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    async function runSampleAnalysis() {
+        const status = document.getElementById('analysis-status');
+        const results = document.getElementById('results');
+
+        if (!testSessionId) {
+            status.innerHTML = '<div class="status error">Please create sample data first</div>';
+            return;
+        }
+
+        try {
+            status.innerHTML = '<div class="status warning">Running analysis...</div>';
+
+            const api = new OpenStaticaAPI();
+
+            // Run descriptive statistics
+            const stats = await api.descriptiveStats(testSessionId, {
+                columns: ['Age', 'Income', 'Score'],
+                options: {include_advanced: true}
+            });
+
+            status.innerHTML = '<div class="status success">✓ Analysis completed</div>';
+            results.textContent = 'Analysis Results:\n' + JSON.stringify(stats, null, 2);
+
+        } catch (error) {
+            status.innerHTML = `<div class="status error">✗ Analysis failed: ${error.message}</div>`;
+            results.textContent = 'Error: ' + error.message;
+        }
+    }
+</script>
+</body>
+</html>
