@@ -1,0 +1,27 @@
+@import '~antd/dist/reset.css';
+
+.App {
+    text-align: center;
+}
+
+.ant-layout-header {
+    display: flex;
+    align-items: center;
+}
+
+.ant-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-menu-item-selected {
+    background-color: #e6f7ff !important;
+}
+
+.ant-statistic-title {
+    color: #666;
+}
+
+.ant-statistic-content-value {
+    color: #1890ff;
+}
