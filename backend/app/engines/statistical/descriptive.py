@@ -65,25 +65,22 @@ class DescriptiveAnalyzer(BaseAnalyzer):
         }
 
         if include_advanced:
-            # Advanced statistics
+            # Manual MAD to avoid pandas version differences
+            mad_val = float(np.mean(np.abs(clean_data - clean_data.mean()))) if len(clean_data) else None
+            cv_val = float((clean_data.std() / clean_data.mean()) * 100) if clean_data.mean() != 0 else None
+
             stats_dict.update({
                 "skewness": float(clean_data.skew()),
                 "kurtosis": float(clean_data.kurtosis()),
                 "sem": float(clean_data.sem()),
-                "mad": float(clean_data.mad()),
-                "cv": float((clean_data.std() / clean_data.mean()) * 100) if clean_data.mean() != 0 else None,
+                "mad": mad_val,
+                "cv": cv_val,
                 "geometric_mean": float(stats.gmean(clean_data[clean_data > 0])) if (clean_data > 0).any() else None,
                 "harmonic_mean": float(stats.hmean(clean_data[clean_data > 0])) if (clean_data > 0).any() else None,
                 "trimmed_mean": float(stats.trim_mean(clean_data, 0.1)),
-
-                # Confidence intervals
                 "ci_95": self._confidence_interval(clean_data, 0.95),
                 "ci_99": self._confidence_interval(clean_data, 0.99),
-
-                # Outliers (using IQR method)
                 "outliers": self._detect_outliers(clean_data),
-
-                # Normality test
                 "normality": self._test_normality(clean_data)
             })
 
