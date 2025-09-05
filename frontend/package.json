@@ -1,0 +1,35 @@
+{
+  "name": "openstatica-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "axios": "^1.6.2",
+    "plotly.js-basic-dist": "^2.27.1",
+    "react-plotly.js": "^2.6.0",
+    "antd": "^5.11.5",
+    "@ant-design/icons": "^5.2.6"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "devDependencies": {
+    "react-scripts": "5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version"
+    ]
+  },
+  "overrides": {
+    "typescript": "^5.0.0"
+  }
+}
