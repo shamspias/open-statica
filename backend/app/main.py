@@ -1,56 +1,23 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import time
-import logging
+import pandas as pd
+import numpy as np
+import io
+from typing import Dict, Any
+import uuid
+from datetime import datetime
 
 from app.config import get_settings
-from app.core.registry import EngineRegistry
-from app.core.session_manager import SessionManager
-from app.core.plugin_manager import PluginManager
-from app.api.v1 import data, statistics, ml, models
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from app.services.statistics_service import StatisticsService
+from app.services.visualization_service import VisualizationService
 
 settings = get_settings()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Manage application lifecycle"""
-    # Startup
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-
-    # Initialize core components
-    app.state.registry = EngineRegistry()
-    app.state.session_manager = SessionManager()
-
-    # Load plugins if enabled
-    if settings.ENABLE_PLUGINS:
-        app.state.plugin_manager = PluginManager(settings.PLUGIN_PATH)
-        await app.state.plugin_manager.load_plugins()
-
-    # Initialize ML engines if enabled
-    if settings.ENABLE_ML:
-        from app.engines.ml import initialize_ml_engines
-        await initialize_ml_engines(app.state.registry)
-
-    yield
-
-    # Shutdown
-    logger.info("Shutting down application")
-    await app.state.session_manager.cleanup()
-
 
 # Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Open-source web-based statistical & ML platform scalable from lightweight analysis to advanced models with endless extensibility",
-    version=settings.APP_VERSION,
-    lifespan=lifespan
+    description="Simple statistical analysis platform for researchers",
+    version=settings.APP_VERSION
 )
 
 # CORS middleware
@@ -62,57 +29,230 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize services
+stats_service = StatisticsService()
+viz_service = VisualizationService()
 
-# Request timing middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
+# In-memory session storage (for simplicity)
+sessions = {}
 
 
-# Include API routers
-app.include_router(data.router, prefix=f"{settings.API_V1_PREFIX}/data", tags=["Data"])
-app.include_router(statistics.router, prefix=f"{settings.API_V1_PREFIX}/statistics", tags=["Statistics"])
-app.include_router(ml.router, prefix=f"{settings.API_V1_PREFIX}/ml", tags=["Machine Learning"])
-app.include_router(models.router, prefix=f"{settings.API_V1_PREFIX}/models", tags=["Models"])
-
-
-# Root endpoint
 @app.get("/")
 async def root():
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "status": "operational",
-        "features": {
-            "statistics": True,
-            "ml": settings.ENABLE_ML,
-            "plugins": settings.ENABLE_PLUGINS,
-            "gpu": settings.ENABLE_GPU
-        }
+        "status": "running"
     }
 
 
-# Health check
-@app.get("/health")
-async def health_check():
+@app.post("/api/upload")
+async def upload_data(file: UploadFile = File(...)):
+    """Upload and process data file"""
+    try:
+        # Validate file type
+        if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Only CSV and Excel files are supported")
+
+        # Read file
+        contents = await file.read()
+
+        # Parse based on file type
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+
+        # Generate session ID
+        session_id = str(uuid.uuid4())
+
+        # Store in session
+        sessions[session_id] = {
+            'data': df,
+            'created_at': datetime.now(),
+            'filename': file.filename
+        }
+
+        # Get basic info
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+
+        return {
+            'session_id': session_id,
+            'rows': len(df),
+            'columns': len(df.columns),
+            'column_names': df.columns.tolist(),
+            'numeric_columns': numeric_cols,
+            'categorical_columns': categorical_cols,
+            'preview': df.head(10).replace({np.nan: None}).to_dict(orient='records')
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/data/{session_id}")
+async def get_data(session_id: str):
+    """Get session data"""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
     return {
-        "status": "healthy",
-        "timestamp": time.time()
+        'data': df.replace({np.nan: None}).to_dict(orient='records'),
+        'columns': df.columns.tolist(),
+        'shape': df.shape
     }
 
 
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal server error",
-            "message": str(exc) if settings.DEBUG else "An error occurred"
-        }
-    )
+@app.post("/api/statistics/descriptive")
+async def descriptive_statistics(request: Dict[str, Any]):
+    """Calculate descriptive statistics"""
+    session_id = request.get('session_id')
+    columns = request.get('columns', [])
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.descriptive_statistics(df, columns)
+
+    return result
+
+
+@app.post("/api/statistics/correlation")
+async def correlation_analysis(request: Dict[str, Any]):
+    """Calculate correlations"""
+    session_id = request.get('session_id')
+    columns = request.get('columns', [])
+    method = request.get('method', 'pearson')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.correlation_analysis(df, columns, method)
+
+    return result
+
+
+@app.post("/api/statistics/ttest")
+async def t_test(request: Dict[str, Any]):
+    """Perform t-test"""
+    session_id = request.get('session_id')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.t_test(df, request)
+
+    return result
+
+
+@app.post("/api/statistics/anova")
+async def anova(request: Dict[str, Any]):
+    """Perform ANOVA"""
+    session_id = request.get('session_id')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.anova(df, request)
+
+    return result
+
+
+@app.post("/api/statistics/regression")
+async def regression(request: Dict[str, Any]):
+    """Perform regression analysis"""
+    session_id = request.get('session_id')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.regression(df, request)
+
+    return result
+
+
+@app.post("/api/statistics/chi-square")
+async def chi_square(request: Dict[str, Any]):
+    """Perform chi-square test"""
+    session_id = request.get('session_id')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.chi_square_test(df, request)
+
+    return result
+
+
+@app.post("/api/visualization/create")
+async def create_visualization(request: Dict[str, Any]):
+    """Create visualization"""
+    session_id = request.get('session_id')
+    chart_type = request.get('type')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await viz_service.create_chart(df, chart_type, request)
+
+    return result
+
+
+@app.post("/api/ml/cluster")
+async def clustering(request: Dict[str, Any]):
+    """Perform clustering analysis"""
+    session_id = request.get('session_id')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.clustering(df, request)
+
+    return result
+
+
+@app.post("/api/ml/classify")
+async def classification(request: Dict[str, Any]):
+    """Train classification model"""
+    session_id = request.get('session_id')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+    result = await stats_service.classification(df, request)
+
+    return result
+
+
+@app.post("/api/export")
+async def export_data(request: Dict[str, Any]):
+    """Export results"""
+    session_id = request.get('session_id')
+    format = request.get('format', 'csv')
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    df = sessions[session_id]['data']
+
+    if format == 'csv':
+        output = df.to_csv(index=False)
+        return {'data': output, 'format': 'csv'}
+    elif format == 'excel':
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
+        return {'data': output.read(), 'format': 'excel'}
+    else:
+        return {'data': df.to_json(orient='records'), 'format': 'json'}
